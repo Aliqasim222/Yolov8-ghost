@@ -1522,6 +1522,12 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             if c2 != nc:
                 c2 = make_divisible(min(c2, max_channels) * width, 8)
             args = [c1, *args[1:]]
+        elif m is BiFPN:
+            # BiFPN takes input channels from previous layer and sets internal channels
+            c1, c2 = ch[f], args[0]
+            if c2 != nc:  # Only apply width scaling if not final output
+                c2 = make_divisible(min(c2, max_channels) * width, 8)
+            args = [c1, *args[1:]]  # Pass input channels to BiFPN
         else:
             c2 = ch[f]
 
