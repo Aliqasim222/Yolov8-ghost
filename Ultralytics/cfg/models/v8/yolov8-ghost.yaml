@@ -32,6 +32,7 @@ backbone:
 # YOLOv8.0n head
 # Modified head with BiFPN + CBAM
 head:
-  - [-1, 1, BiFPN, [256]]  # BiFPN for multi-scale fusion
-  - [-1, 1, CBAM, [256, 7]]  # Post-BiFPN attention
-  - [[-1, 12, 9], 1, Detect, [nc]]  # Detection layer
+  - [-1, 1, BiFPN, [256]]
+  - [-1, 1, CBAM, [256, 7]]
+  - [-1, 1, SE, [256]]  # Add SE after CBAM
+  - [[-1, 12, 9], 1, Detect, [nc]]
