@@ -1406,6 +1406,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             DWConv,
             Focus,
             BottleneckCSP,
+            BiFPN,
             C1,
             C2,
             C2f,
