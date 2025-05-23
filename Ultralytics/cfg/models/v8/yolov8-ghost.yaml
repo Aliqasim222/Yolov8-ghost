@@ -32,7 +32,7 @@ backbone:
 # YOLOv8.0n head
 # Modified head with BiFPN + CBAM
 head:
-  - [-1, 1, BiFPN, [256]]
+  - [[2, 4, 6], 1, BiFPN, [256]]  # Fuse P3(2), P4(4), P5(6) with BiFPN (output channels=256)
   - [-1, 1, CBAM, [256, 7]]
   - [-1, 1, SE, [256]]  # Add SE after CBAM
   - [[-1, 12, 9], 1, Detect, [nc]]
