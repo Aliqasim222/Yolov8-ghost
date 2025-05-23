@@ -154,35 +154,53 @@ class Conv2(Conv):
         self.forward = self.forward_fuse
 
 class BiFPN(nn.Module):
-    def __init__(self, c1, c2, upsample_scale=2):
+    """
+    Bidirectional Feature Pyramid Network (BiFPN) for multi-scale feature fusion.
+    Uses GhostConv for lightweight operations.
+    
+    Args:
+        channels (int): Base channel dimension.
+    """
+    def __init__(self, channels):
         super().__init__()
-        self.upsample = nn.Upsample(scale_factor=upsample_scale)
-        self.conv = GhostConv(c1, c2, k=3)  # Use GhostConv for lightweight design
-        # Learnable weights for feature fusion
-        self.w1 = nn.Parameter(torch.ones(2))
-        self.w2 = nn.Parameter(torch.ones(2))
-
-    def forward(self, x):
-        p3, p4, p5 = x  # Input features from backbone (P3, P4, P5)
+        self.channels = channels
         
         # Top-down pathway
-        p5_up = self.upsample(p5)
-        w1 = F.softmax(self.w1 + 1e-4, dim=0)  # Avoid NaNs
-        p4_td = self.conv(w1[0] * p4 + w1[1] * p5_up)
+        self.top_down_ghost = GhostConv(channels, channels)
+        self.top_down_fuse = GhostConv(channels * 2, channels)
+        
+        # Bottom-up pathway
+        self.bottom_up_ghost = GhostConv(channels, channels)
+        self.bottom_up_fuse = GhostConv(channels * 3, channels)
+        
+        # Weighted fusion parameters
+        self.w1 = nn.Parameter(torch.ones(2))
+        self.w2 = nn.Parameter(torch.ones(3))
 
-        p4_up = self.upsample(p4_td)
-        p3_out = self.conv(w1[0] * p3 + w1[1] * p4_up)
+    def forward(self, x):
+        """
+        Args:
+            x: List of feature maps [p3, p4, p5]
+        Returns:
+            List of refined feature maps [p3, p4, p5]
+        """
+        p3, p4, p5 = x
+        
+        # Top-down pathway
+        p5_up = F.interpolate(p5, size=p4.shape[2:], mode="nearest")
+        p4_td = self.top_down_ghost((p4 + self.w1[0] * p5_up))
+        
+        p4_up = F.interpolate(p4_td, size=p3.shape[2:], mode="nearest")
+        p3 = self.top_down_ghost((p3 + self.w1[1] * p4_up))
 
         # Bottom-up pathway
-        p3_down = F.max_pool2d(p3_out, kernel_size=2)
-        w2 = F.softmax(self.w2 + 1e-4, dim=0)
-        p4_out = self.conv(w2[0] * p4_td + w2[1] * p3_down + w2[2] * p5)
+        p3_down = F.max_pool2d(p3, kernel_size=2, stride=2)
+        p4 = self.bottom_up_ghost((p4_td + p3_down + self.w2[0] * p4))
+        
+        p4_down = F.max_pool2d(p4, kernel_size=2, stride=2)
+        p5 = self.bottom_up_ghost((p5 + p4_down + self.w2[1] * p5))
 
-        p4_down = F.max_pool2d(p4_out, kernel_size=2)
-        p5_out = self.conv(w2[0] * p5 + w2[1] * p4_down)
-
-        return [p3_out, p4_out, p5_out]
-
+        return [p3, p4, p5]
 class LightConv(nn.Module):
     """
     Light convolution module with 1x1 and depthwise convolutions.
