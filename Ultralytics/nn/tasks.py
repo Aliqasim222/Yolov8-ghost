@@ -1420,6 +1420,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C3,
             C3TR,
             C3Ghost,
+            CBAM,
             torch.nn.ConvTranspose2d,
             DWConvTranspose2d,
             C3x,
