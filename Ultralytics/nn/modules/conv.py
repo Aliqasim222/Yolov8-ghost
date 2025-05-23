@@ -273,7 +273,20 @@ class DWConvTranspose2d(nn.ConvTranspose2d):
             p2 (int): Output padding.
         """
         super().__init__(c1, c2, k, s, p1, p2, groups=math.gcd(c1, c2))
+class SE(nn.Module):
+    """Squeeze-and-Excitation block for channel recalibration."""
+    def __init__(self, channels, reduction=16):
+        super().__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Conv2d(channels, channels // reduction, 1),
+            nn.ReLU(),
+            nn.Conv2d(channels // reduction, channels, 1),
+            nn.Sigmoid()
+        )
 
+    def forward(self, x):
+        return x * self.fc(self.avg_pool(x))
 
 class ConvTranspose(nn.Module):
     """
