@@ -201,6 +201,7 @@ class BiFPN(nn.Module):
         p5 = self.bottom_up_ghost((p5 + p4_down + self.w2[1] * p5))
 
         return [p3, p4, p5]
+        
 class LightConv(nn.Module):
     """
     Light convolution module with 1x1 and depthwise convolutions.
